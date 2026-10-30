@@ -118,7 +118,7 @@ Use Pixi for general development. `pixi run build` configures and builds;
 Keep the CMake configure command directly in the Pixi task, with
 `CMAKE_INSTALL_PREFIX` supplied through activation environment variables.
 The native feature defaults to `$CONDA_PREFIX`, with a Windows target override
-of `$CONDA_PREFIX/Library`; keep platform-specific prefix choices in `pixi.toml`
+of `%CONDA_PREFIX%/Library`; keep platform-specific prefix choices in `pixi.toml`
 rather than a Python configuration wrapper. All builds resolve their MuJoCo
 symbols dynamically; inspect `src/mujoco_api.cc` when auditing dependencies.
 

@@ -22,7 +22,7 @@ libresolve-robotics-uri-cpp = "*"
 CMAKE_INSTALL_PREFIX = "$CONDA_PREFIX"
 
 [feature.native.target.win-64.activation.env]
-CMAKE_INSTALL_PREFIX = "$CONDA_PREFIX/Library"
+CMAKE_INSTALL_PREFIX = "%CONDA_PREFIX%/Library"
 
 [feature.native.tasks]
 configure = 'cmake -S . -B build/native -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$CMAKE_INSTALL_PREFIX"'

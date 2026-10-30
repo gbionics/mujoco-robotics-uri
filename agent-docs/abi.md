@@ -239,3 +239,14 @@ The initial macOS ARM64 wheel job completed the full six-runtime matrix and
 3.11 rejection checks successfully. Follow-up fixes were checked locally with
 the native suite, a wheel repacked with explicit directory entries, and an
 isolated wheel build; corrected Windows/manylinux jobs are being rerun in CI.
+
+Windows native CI additionally exposed that activation environment values use
+Windows variable expansion: the install-prefix override must be
+`%CONDA_PREFIX%/Library`, not `$CONDA_PREFIX/Library`, which was left literal and
+installed the plugin outside the environment. The CMake task remains direct and
+continues reading `CMAKE_INSTALL_PREFIX` from the activation environment.
+
+CI for commit 0f85ad8 passed the complete six-version wheel matrix on all four
+platforms: Linux x86-64, Linux AArch64, macOS ARM64, and Windows x86-64. Native
+and source-package checks passed on Linux x86-64/AArch64 and macOS; the Windows
+native prefix correction is pending its follow-up CI run.
