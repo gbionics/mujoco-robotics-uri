@@ -8,7 +8,8 @@ import tempfile
 
 executable, provider, mujoco = map(lambda p: Path(p).resolve(), sys.argv[1:])
 with tempfile.TemporaryDirectory(prefix="mru-relocation-") as tmp:
-    root = Path(tmp)
+    # macOS's temporary directory may use the /var -> /private/var alias.
+    root = Path(tmp).resolve()
     original = root / "original"
     library_dir = original / ("bin" if sys.platform == "win32" else "lib")
     library_dir.mkdir(parents=True)

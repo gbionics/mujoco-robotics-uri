@@ -225,3 +225,17 @@ GitHub Actions now schedules native/source tests and manylinux_2_28 AArch64
 wheel builds/tests on `ubuntu-24.04-arm`, with separate Linux artifact names.
 Local x86-64 regression checks passed (11 Python tests and five CTest checks).
 AArch64 execution is pending CI; lock resolution is not execution evidence.
+
+The first GitHub Actions run executed Linux x86-64 and AArch64 native/source
+checks successfully. It exposed test portability issues: repaired wheels contain
+ZIP directory entries, macOS temporary paths can use the `/var` alias, and the
+Windows native smoke target needs explicit C++17. These checks now inspect only
+archive files, resolve the temporary test root, and request C++17 respectively.
+The MuJoCo 3.12 Windows wheel also stores its headers under
+`mujoco/include/mujoco/mujoco/`; CMake locates the actual include root from the
+two published layouts instead of assuming the Unix layout.
+
+The initial macOS ARM64 wheel job completed the full six-runtime matrix and
+3.11 rejection checks successfully. Follow-up fixes were checked locally with
+the native suite, a wheel repacked with explicit directory entries, and an
+isolated wheel build; corrected Windows/manylinux jobs are being rerun in CI.

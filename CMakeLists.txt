@@ -11,7 +11,7 @@ set(MRU_PLUGIN_INSTALL_DIR "${CMAKE_INSTALL_BINDIR}/mujoco_plugin" CACHE PATH
 if(MRU_WHEEL)
   find_package(Python REQUIRED COMPONENTS Interpreter)
   execute_process(COMMAND "${Python_EXECUTABLE}" -c
-    "import importlib.util; from pathlib import Path; print(Path(importlib.util.find_spec('mujoco').origin).parent)"
+    "import importlib.util; from pathlib import Path; print(Path(importlib.util.find_spec('mujoco').origin).parent.as_posix())"
     OUTPUT_VARIABLE _mujoco_dir OUTPUT_STRIP_TRAILING_WHITESPACE COMMAND_ERROR_IS_FATAL ANY)
   set(MRU_WHEEL_MUJOCO_VERSION "3.12.0" CACHE STRING "MuJoCo headers for this wheel release")
   execute_process(COMMAND "${Python_EXECUTABLE}" -c
@@ -20,7 +20,10 @@ if(MRU_WHEEL)
   if(NOT _mujoco_version STREQUAL MRU_WHEEL_MUJOCO_VERSION)
     message(FATAL_ERROR "Wheel requires MuJoCo ${MRU_WHEEL_MUJOCO_VERSION} build headers; found ${_mujoco_version}")
   endif()
-  set(MRU_MUJOCO_INCLUDE_DIR "${_mujoco_dir}/include")
+  # The 3.12 Windows wheel nests headers one mujoco directory deeper.
+  find_path(MRU_MUJOCO_INCLUDE_DIR NAMES mujoco/mujoco.h
+    PATHS "${_mujoco_dir}/include" "${_mujoco_dir}/include/mujoco"
+    NO_DEFAULT_PATH NO_CACHE REQUIRED)
   set(MRU_PLUGIN_INSTALL_DIR "mujoco/plugin")
 else()
   set(MRU_MUJOCO_INCLUDE_DIR "" CACHE PATH "MuJoCo 3.12.0 include directory (headers only)")
@@ -75,6 +78,7 @@ if(BUILD_TESTING AND NOT MRU_WHEEL)
   # a real engine and its headers to exercise MuJoCo's public native API.
   find_package(mujoco CONFIG REQUIRED)
   add_executable(native_smoke tests/native_smoke.cc)
+  target_compile_features(native_smoke PRIVATE cxx_std_17)
   target_link_libraries(native_smoke PRIVATE mujoco::mujoco)
   target_include_directories(native_smoke PRIVATE src)
   add_test(NAME native_provider COMMAND native_smoke $<TARGET_FILE:mujoco_robotics_uri>)

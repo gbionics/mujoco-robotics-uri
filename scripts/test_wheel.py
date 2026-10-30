@@ -42,7 +42,8 @@ wheel_dir = args.wheel_dir.resolve() if args.wheel_dir else repo / "dist"
 wheel = max(wheel_dir.glob(f"mujoco_robotics_uri-{project['version']}-*.whl"),
             key=lambda p: p.stat().st_mtime_ns)
 with zipfile.ZipFile(wheel) as archive:
-    names = archive.namelist()
+    # Repair tools may add explicit directory entries; inspect payload files.
+    names = [entry.filename for entry in archive.infolist() if not entry.is_dir()]
     libraries = [n for n in names if n.endswith((".so", ".dylib", ".dll"))]
     assert len(libraries) == 1 and libraries[0].startswith("mujoco/plugin/"), names
     assert "mujoco_robotics_uri" in libraries[0]
