@@ -1,0 +1,90 @@
+[workspace]
+name = "mujoco-robotics-uri"
+preview = ["pixi-build"]
+channels = ["conda-forge"]
+platforms = ["linux-64", "linux-aarch64", "osx-arm64", "win-64"]
+
+[dependencies]
+cmake = ">=3.26"
+ninja = "*"
+cxx-compiler = "*"
+python = "3.12.*"
+pytest = ">=8"
+python-build = "*"
+pip = "*"
+
+[feature.native.dependencies]
+mujoco = "*"
+libmujoco = "*"
+libresolve-robotics-uri-cpp = "*"
+
+[feature.native.activation.env]
+CMAKE_INSTALL_PREFIX = "$CONDA_PREFIX"
+
+[feature.native.target.win-64.activation.env]
+CMAKE_INSTALL_PREFIX = "%CONDA_PREFIX%/Library"
+
+[feature.native.tasks]
+configure = 'cmake -S . -B build/native -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$CMAKE_INSTALL_PREFIX"'
+build = { cmd = "cmake --build build/native", depends-on = ["configure"] }
+install = { cmd = "cmake --install build/native", depends-on = ["build"] }
+test = { cmd = "python -m pytest tests -v && ctest --test-dir build/native --output-on-failure", depends-on = ["install"] }
+
+[feature.wheel.dependencies]
+packaging = "*"
+
+[feature.wheel.tasks]
+wheel = "python -m build --wheel"
+test-wheel = "python scripts/test_wheel.py"
+
+[environments]
+default = { features = ["native"] }
+wheel = { features = ["wheel"] }
+wheel-build = { features = ["wheel-build"], no-default-feature = true }
+source = { features = ["source"], no-default-feature = true }
+
+[package]
+name = "mujoco-robotics-uri"
+version = "0.1.0"
+description = "MuJoCo resource provider for package://, model://, and robot:// URIs"
+license = "BSD-3-Clause"
+license-file = "LICENSES.txt"
+
+[package.build.backend]
+name = "pixi-build-cmake"
+version = "0.*"
+
+[package.build.config]
+extra-args = ["-DBUILD_TESTING=OFF"]
+extra-input-globs = ["LICENSES.txt"]
+
+[package.build-dependencies]
+cmake = ">=3.26"
+
+[package.host-dependencies]
+libresolve-robotics-uri-cpp = ">=0.6.1"
+
+[package.run-dependencies]
+libmujoco = ">=3.12"
+
+[feature.source.dependencies]
+mujoco-robotics-uri = { path = "." }
+mujoco = ">=3.12"
+python = "3.12.*"
+pytest = ">=8"
+
+[feature.source.tasks]
+test-source = "python -m pytest tests -v"
+
+# CI uses platform compilers; this environment supplies the locked build tools.
+[feature.wheel-build.dependencies]
+python = "3.12.*"
+python-build = "*"
+packaging = "*"
+pip = "*"
+cmake = ">=3.26"
+ninja = "*"
+
+[feature.wheel-build.target.linux.dependencies]
+auditwheel = "*"
+patchelf = "*"

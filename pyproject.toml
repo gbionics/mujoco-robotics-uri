@@ -1,0 +1,28 @@
+[build-system]
+requires = ["scikit-build-core>=0.11", "mujoco==3.12.0"]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "mujoco-robotics-uri"
+version = "0.1.0"
+description = "MuJoCo resource provider for package:, model:, and robot: URIs, powered by resolve-robotics-uri-cpp."
+readme = "README.md"
+requires-python = ">=3.10"
+license = "BSD-3-Clause"
+# One plugin supports both provider-symbol families across reviewed MuJoCo 3.12-3.17.
+# Cap PyPI installs before the next unreviewed minor release; extend only after
+# ABI review and testing, then publish a new plugin release (see AGENTS.md).
+# The 3.12.0 build dependency above supplies baseline headers, not the runtime pin.
+dependencies = ["mujoco>=3.12,<3.18"]
+
+[tool.scikit-build]
+cmake.version = ">=3.26"
+wheel.packages = []
+wheel.py-api = "py3"
+wheel.license-files = ["LICENSE"]
+
+[tool.scikit-build.cmake.define]
+MRU_WHEEL = "ON"
+MRU_FETCH_RESOLVER = "ON"
+MRU_WHEEL_MUJOCO_VERSION = "3.12.0"
+BUILD_TESTING = "OFF"

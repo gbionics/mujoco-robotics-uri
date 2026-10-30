@@ -1,0 +1,124 @@
+name: Build and test
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+  release:
+    types: [published]
+permissions:
+  contents: read
+jobs:
+  versions:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: prefix-dev/setup-pixi@v0.9.3
+        with:
+          pixi-version: v0.82.1
+          environments: wheel-build
+          locked: true
+      - name: Check plugin release versions
+        run: pixi run --locked -e wheel-build python scripts/check_versions.py
+      - name: Check the GitHub release tag
+        if: github.event_name == 'release'
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: pixi run --locked -e wheel-build python scripts/check_versions.py --tag "$RELEASE_TAG"
+
+  native:
+    needs: versions
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, ubuntu-24.04-arm, macos-14, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: prefix-dev/setup-pixi@v0.9.3
+        with:
+          pixi-version: v0.82.1
+          environments: default
+      - run: pixi run test
+      - name: Build and test the Pixi source dependency
+        run: pixi run -e source test-source
+
+  linux-wheel:
+    needs: versions
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            arch: x86_64
+          - os: ubuntu-24.04-arm
+            arch: aarch64
+    runs-on: ${{ matrix.os }}
+    container: quay.io/pypa/manylinux_2_28_${{ matrix.arch }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: prefix-dev/setup-pixi@v0.9.3
+        with:
+          pixi-version: v0.82.1
+          environments: wheel-build
+          locked: true
+      - name: Build the plugin wheel in isolation
+        run: pixi run --locked -e wheel-build python -m build --wheel
+      - name: Validate and tag the Linux wheel
+        # No dependency bundling is expected; wheel-content checks below enforce it.
+        run: pixi run --locked -e wheel-build python -m auditwheel repair --plat manylinux_2_28_${{ matrix.arch }} --wheel-dir wheelhouse dist/*.whl
+      - name: Test the tagged artifact across the MuJoCo ABI range
+        run: pixi run --locked -e wheel-build python scripts/test_wheel.py --wheel-dir wheelhouse
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wheels-linux-${{ matrix.arch }}
+          path: wheelhouse/*.whl
+          if-no-files-found: error
+
+  wheels:
+    needs: versions
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-14, windows-latest]
+    runs-on: ${{ matrix.os }}
+    env:
+      MACOSX_DEPLOYMENT_TARGET: '11.0'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: prefix-dev/setup-pixi@v0.9.3
+        with:
+          pixi-version: v0.82.1
+          environments: wheel-build
+          locked: true
+      - uses: ilammy/msvc-dev-cmd@v1
+        if: runner.os == 'Windows'
+      - name: Build the plugin wheel in isolation
+        run: pixi run --locked -e wheel-build python -m build --wheel --outdir wheelhouse
+      - name: Check and test the built artifact across the MuJoCo ABI range
+        run: pixi run --locked -e wheel-build python scripts/test_wheel.py --wheel-dir wheelhouse
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wheels-${{ matrix.os }}
+          path: wheelhouse/*.whl
+          if-no-files-found: error
+
+  publish-pypi:
+    name: Publish tested wheels to PyPI
+    if: github.event_name == 'release'
+    needs: [native, linux-wheel, wheels]
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/mujoco-robotics-uri
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Download the tested wheels from this workflow run
+        uses: actions/download-artifact@v4
+        with:
+          pattern: wheels-*
+          merge-multiple: true
+          path: dist/
+      - name: Publish with PyPI Trusted Publishing
+        uses: pypa/gh-action-pypi-publish@release/v1
