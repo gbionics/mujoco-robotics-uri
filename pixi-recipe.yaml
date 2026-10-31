@@ -1,0 +1,41 @@
+# Pixi source-package recipe; the conda-forge feedstock remains external.
+context:
+  metadata: ${{ load_from_file("pixi.toml").package }}
+
+package:
+  name: ${{ metadata.name }}
+  version: ${{ metadata.version }}
+
+source:
+  path: .
+
+build:
+  number: 0
+  script:
+    - if: unix
+      then: cmake -S . -B build/pixi -G Ninja ${CMAKE_ARGS} -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$PREFIX" -DBUILD_TESTING=OFF
+    - if: win
+      then: cmake -S . -B build/pixi -G Ninja %CMAKE_ARGS% -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="%LIBRARY_PREFIX%" -DBUILD_TESTING=OFF
+    - cmake --build build/pixi --parallel
+    - cmake --install build/pixi
+
+requirements:
+  build:
+    - ${{ compiler('cxx') }}
+    - if: unix
+      then: ${{ stdlib('c') }}
+    - cmake >=3.26
+    - ninja
+  host:
+    - libmujoco >=3.12,<3.18
+    - libresolve-robotics-uri-cpp >=0.6.2
+  run:
+    - libmujoco >=3.12
+  ignore_run_exports:
+    from_package:
+      - libmujoco
+
+about:
+  summary: ${{ metadata.description }}
+  license: ${{ metadata.license }}
+  license_file: ${{ metadata["license-file"] }}

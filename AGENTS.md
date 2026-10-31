@@ -34,12 +34,14 @@ notes belong in `agent-docs/`; human-facing usage guides belong in `docs/`.
 Read `agent-docs/abi.md` before changing MuJoCo dependencies, provider callbacks,
 loader code, runtime guards, or compatibility claims.
 
-- Build every provider against the MuJoCo **3.12.0** header baseline. Native and
+- Build wheels against the MuJoCo **3.12.0** header baseline; native builds use
+  installed reviewed **3.12–3.17** headers via `find_package(mujoco)`. Native and
   wheel binaries use the same runtime loader and provider implementation, without
   direct MuJoCo imports or a link to `libmujoco`. Select old provider symbols for
   runtime versions 3.12–3.15 and renamed symbols for 3.16+. Validate structs,
   signatures, imported functions, and platform loader dependencies together.
-- Conda-forge needs **no `libmujoco` host dependency** or per-MuJoCo ABI migration
+- Native builds require a reviewed `libmujoco >=3.12,<3.18` host dependency for
+  headers, without linking to the engine. No per-MuJoCo ABI migration is needed
   for this provider. The external feedstock declares `libmujoco >=3.12` at run
   time. If a future ABI is incompatible, patch repodata to restrict affected
   builds and update/rebuild the provider as necessary. Repodata changes dependency
@@ -57,7 +59,8 @@ loader code, runtime guards, or compatibility claims.
   ABI compatibility with all future MuJoCo versions.
 - When extending PyPI compatibility, update `project.dependencies`, the matrix
   and upper-bound assertion in `scripts/test_wheel.py`, and the ABI record
-  together. Keep the pinned 3.12.0 headers unless an ABI change requires otherwise.
+  together. Keep the pinned wheel 3.12.0 headers unless an ABI change requires
+  otherwise.
 - Build one wheel and test that exact artifact with every supported runtime
   release (currently 3.12.0 through 3.17.0) and the rejected 3.11.0 runtime.
   Also check the PyPI upper bound in metadata. Do not broaden a range merely
@@ -70,9 +73,9 @@ loader code, runtime guards, or compatibility claims.
    `mjpResourceProvider`, callback signatures, all five dynamically resolved
    functions, library names, and automatic plugin discovery. Record the evidence
    and decision there; unchanged structs alone are insufficient.
-2. If the provider ABI still matches, retain the **3.12.0 header baseline** and
-   existing runtime dispatch. Do not change `build-system.requires`, the CMake
-   header archive/hash, or `MRU_WHEEL_MUJOCO_VERSION` merely to follow the newest
+2. If the provider ABI still matches, retain the **3.12.0 wheel header baseline** and
+   existing runtime dispatch. Do not change `build-system.requires` or
+   `MRU_WHEEL_MUJOCO_VERSION` merely to follow the newest
    engine. If it breaks, implement and validate the needed runtime adapter or
    restrict compatibility before claiming support.
 3. Extend `project.dependencies` in `pyproject.toml` only after review. For a
@@ -89,9 +92,11 @@ loader code, runtime guards, or compatibility claims.
    package contents/licenses, and uninstall ownership. Require relevant Linux,
    macOS, and Windows CI results before claiming those platforms. Record actual
    results and any unexecuted checks in `agent-docs/abi.md`.
-5. Keep the Pixi source package and external feedstock's runtime-only
-   `libmujoco >=3.12` policy for compatible engines. No MuJoCo host dependency or
-   routine ABI migration is needed. For an incompatible engine, arrange an
+5. Keep the explicit `libmujoco >=3.12` runtime policy for compatible engines.
+   Native builds need MuJoCo headers as a host dependency; no routine ABI
+   migration is needed for the binary. The Pixi recipe ignores MuJoCo's
+   run export to preserve the dynamic runtime requirement; the external feedstock
+   should do the same. For an incompatible engine, arrange an
    external conda repodata patch restricting affected builds and update the
    provider as needed; metadata patches cannot fix installed binaries. Keep the
    feedstock recipe outside this repository.
@@ -131,14 +136,12 @@ without installing MuJoCo or scikit-build-core. Wheel builds use PEP 517 isolati
 separate under `project.dependencies`. Do not use `--no-isolation` in normal
 builds or duplicate the MuJoCo build dependency in the Pixi environment.
 
-Standalone native CMake builds require C++17 and the `ResolveRoboticsURICpp`
-CMake package, with no Python or installed MuJoCo build dependency. They fetch
-pinned MuJoCo 3.12.0 sources for headers only; `SOURCE_SUBDIR include` selects the
-real header directory without configuring/building an engine. This is separate
-from the resolver, whose upstream CMake project must be configured normally.
-Set `MRU_MUJOCO_INCLUDE_DIR` to an existing 3.12.0 include directory, or
-`FETCHCONTENT_SOURCE_DIR_MUJOCO_HEADERS` to an unpacked source tree for offline
-builds. Feedstocks can supply the pinned archive as an additional source.
+Standalone native CMake builds require C++17, the `ResolveRoboticsURICpp`
+CMake package, and an installed MuJoCo development package discoverable by
+`find_package(mujoco 3.12 CONFIG REQUIRED)`. Only the MuJoCo target's include
+paths are used by the provider; it does not link to the engine. Headers must
+belong to the reviewed 3.12–3.17 interval. Wheels retain their pinned 3.12.0
+build dependency. Native builds do not fetch MuJoCo headers.
 Native integration tests additionally need installed shared MuJoCo and Python;
 packaging builds can omit those tests:
 
@@ -177,18 +180,30 @@ linked into the executable without a shared MuJoCo dependency.
 
 ## Pixi source package
 
-The root `pixi.toml` defines a source package using `pixi-build-cmake` and the
-`pixi-build` preview feature. Keep its version aligned with CMake and PyPI.
-The backend configures, builds, and installs using the existing CMake rules;
-`BUILD_TESTING=OFF` keeps MuJoCo and Python out of build/host requirements.
-The packaged resolver is a host dependency; `libmujoco >=3.12` is a run dependency
-only. Build tools/compilers come from the backend, with CMake >=3.26 required.
-Package license metadata uses `license` / `license-file`, without changing the
+The root `pixi.toml` defines a source package using `pixi-build-rattler-build`
+and the `pixi-build` preview feature. `pixi-recipe.yaml` is exclusively the Pixi
+source-package recipe; the conda-forge feedstock remains external. The recipe
+loads package metadata, including the release version, from `pixi.toml` using
+`load_from_file`, which requires `package.build.config.experimental = true`.
+Keep the version aligned with CMake and PyPI.
+
+The recipe configures, builds, and installs using the existing CMake rules.
+`BUILD_TESTING=OFF` omits Python and integration-test dependencies. Build tools
+and compilers are declared in the recipe, including CMake >=3.26. The packaged
+resolver and `libmujoco >=3.12,<3.18` are host dependencies; MuJoCo supplies
+headers only to the provider. `requirements.ignore_run_exports.from_package`
+ignores only `libmujoco`, preserving the explicit `libmujoco >=3.12` runtime
+requirement while retaining compiler runtime exports. Windows installs into
+`%LIBRARY_PREFIX%`; Unix uses `$PREFIX`. Keep these platform choices in the
+recipe's script selectors. Binary package dependencies belong in the recipe,
+not `[package.*-dependencies]` in `pixi.toml` with this backend.
+
+Package license metadata uses `license` / `license_file`, without changing the
 native CMake install rules. `LICENSES.txt` combines the project `LICENSE` and the
-unchanged resolver v0.6.2 license for the package metadata. Keep these notices
-aligned when updating either license or the resolver; the project's own `LICENSE`
-stays separate. This source package is separate from the external
-conda-forge feedstock; do not reintroduce a local conda recipe.
+unchanged resolver v0.6.2 license for package metadata. Keep these notices
+aligned when updating either license or the resolver; the project's own
+`LICENSE` stays separate. Do not add a separate feedstock recipe or `recipe/`
+directory here.
 
 Consumers enable `workspace.preview = ["pixi-build"]` and use a path or Git
 source dependency, for example:
@@ -210,8 +225,7 @@ four native platforms: Linux x86-64/AArch64, macOS ARM64, and Windows x86-64. To
 pixi publish --path . --target-dir build/pixi-package
 ```
 
-CMake FetchContent needs network access for baseline headers unless sources are
-provided locally. See the [Pixi CMake backend documentation](https://pixi.prefix.dev/latest/build/backends/pixi-build-cmake/)
+Native builds use installed MuJoCo headers. See the [Pixi rattler-build backend documentation](https://pixi.prefix.dev/latest/build/backends/pixi-build-rattler-build/)
 for backend configuration. No engine or resolver is vendored into the source.
 
 ## Wheels and CI
@@ -294,8 +308,9 @@ secret is needed. Keep publishing separate from build jobs; only the publishing
 job receives OIDC permission. Adding/changing the workflow does not itself
 publish a release.
 
-Conda recipes belong in the conda-forge feedstock, not this repository. Do not
-add a local `recipe/` directory or recipe build commands here.
+The conda-forge recipe belongs in the external feedstock. The local
+`pixi-recipe.yaml` supports only the Pixi source package; do not add a separate
+feedstock recipe or `recipe/` directory here.
 
 Do not publish, retag a local wheel as manylinux, or broaden platform claims on
 the strength of configured workflows alone. Inspect packaged contents and shared
