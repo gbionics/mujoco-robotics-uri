@@ -185,7 +185,7 @@ The packaged resolver is a host dependency; `libmujoco >=3.12` is a run dependen
 only. Build tools/compilers come from the backend, with CMake >=3.26 required.
 Package license metadata uses `license` / `license-file`, without changing the
 native CMake install rules. `LICENSES.txt` combines the project `LICENSE` and the
-unchanged resolver v0.6.1 license for the package metadata. Keep these notices
+unchanged resolver v0.6.2 license for the package metadata. Keep these notices
 aligned when updating either license or the resolver; the project's own `LICENSE`
 stays separate. This source package is separate from the external
 conda-forge feedstock; do not reintroduce a local conda recipe.
@@ -233,7 +233,7 @@ pixi run -e wheel test-wheel
 pixi run -e wheel python -m build --sdist
 ```
 
-Wheel builds fetch resolver v0.6.1 with CMake FetchContent using the readable
+Wheel builds fetch resolver v0.6.2 with CMake FetchContent using the readable
 GitHub release archive URL and its SHA-256 pin. Configure the upstream CMake
 project normally, including YCM; do not bypass it using a nonexistent
 `SOURCE_SUBDIR` or a hand-built replacement interface target. Native builds use

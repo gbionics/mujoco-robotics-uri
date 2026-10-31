@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.26)
-project(mujoco_robotics_uri VERSION 0.1.0 LANGUAGES CXX)
+project(mujoco_robotics_uri VERSION 0.1.1 LANGUAGES CXX)
 include(GNUInstallDirs)
 include(FetchContent)
 
@@ -40,15 +40,15 @@ endif()
 
 if(MRU_FETCH_RESOLVER)
   FetchContent_Declare(resolve_robotics_uri_cpp
-    URL https://github.com/gbionics/resolve-robotics-uri-cpp/archive/refs/tags/v0.6.1.tar.gz
-    URL_HASH SHA256=b81d0b092549764d80bbb881d9fc07dd553ab9f4ad494f1cc5bbc13f39da3cc0)
+    URL https://github.com/gbionics/resolve-robotics-uri-cpp/archive/refs/tags/v0.6.2.tar.gz
+    URL_HASH SHA256=ad2c5abeea06f859c05214311f99d0dcf80558c86d678081c8b3b33071c62591)
   FetchContent_MakeAvailable(resolve_robotics_uri_cpp)
   if(MRU_WHEEL AND SKBUILD)
     install(FILES "${resolve_robotics_uri_cpp_SOURCE_DIR}/LICENSE"
       DESTINATION "${SKBUILD_METADATA_DIR}/licenses/resolve-robotics-uri-cpp")
   endif()
 else()
-  find_package(ResolveRoboticsURICpp 0.6.1 CONFIG REQUIRED)
+  find_package(ResolveRoboticsURICpp 0.6.2 CONFIG REQUIRED)
 endif()
 
 add_library(mujoco_robotics_uri SHARED src/provider.cc src/mujoco_api.cc)
