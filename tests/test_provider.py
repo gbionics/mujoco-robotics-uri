@@ -58,6 +58,27 @@ def test_cross_package_include(resources):
     ''')
 
 
+def test_venv_nested_in_conda(resources):
+    tmp, _, _, env = resources
+    conda = tmp / "conda"
+    venv = conda / "venv"
+    for prefix, size in ((conda, ".2"), (venv, ".1")):
+        package = prefix / "share" / "nested_env_example"
+        package.mkdir(parents=True)
+        (package / "shared.xml").write_text(
+            f'<mujoco><worldbody><geom size="{size}"/></worldbody></mujoco>')
+    (conda / "share" / "nested_env_example" / "conda_only.xml").write_text('<mujoco/>')
+    env.pop("RRU_ADDITIONAL_PATHS")
+    env.update(VIRTUAL_ENV=str(venv), CONDA_PREFIX=str(conda))
+    run(resources, '''
+        import mujoco
+        model = mujoco.MjModel.from_xml_path("package://nested_env_example/shared.xml")
+        assert model.geom_size[0, 0] == .1
+        assert mujoco.MjModel.from_xml_path(
+            "package://nested_env_example/conda_only.xml").ngeom == 0
+    ''')
+
+
 def test_robot_search_and_working_directory(resources):
     (resources[0] / "local.xml").write_text('<mujoco/>')
     run(resources, '''

@@ -4,7 +4,7 @@ build-backend = "scikit_build_core.build"
 
 [project]
 name = "mujoco-robotics-uri"
-version = "0.1.0"
+version = "0.1.1"
 description = "MuJoCo resource provider for package:, model:, and robot: URIs, powered by resolve-robotics-uri-cpp."
 readme = "README.md"
 requires-python = ">=3.10"

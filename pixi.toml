@@ -16,7 +16,7 @@ pip = "*"
 [feature.native.dependencies]
 mujoco = "*"
 libmujoco = "*"
-libresolve-robotics-uri-cpp = "*"
+libresolve-robotics-uri-cpp = ">=0.6.2"
 
 [feature.native.activation.env]
 CMAKE_INSTALL_PREFIX = "$CONDA_PREFIX"
@@ -45,7 +45,7 @@ source = { features = ["source"], no-default-feature = true }
 
 [package]
 name = "mujoco-robotics-uri"
-version = "0.1.0"
+version = "0.1.1"
 description = "MuJoCo resource provider for package://, model://, and robot:// URIs"
 license = "BSD-3-Clause"
 license-file = "LICENSES.txt"
@@ -62,7 +62,7 @@ extra-input-globs = ["LICENSES.txt"]
 cmake = ">=3.26"
 
 [package.host-dependencies]
-libresolve-robotics-uri-cpp = ">=0.6.1"
+libresolve-robotics-uri-cpp = ">=0.6.2"
 
 [package.run-dependencies]
 libmujoco = ">=3.12"
