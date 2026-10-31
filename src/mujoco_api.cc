@@ -6,7 +6,8 @@
 #include <cstring>
 #include <string_view>
 
-static_assert(mjVERSION_HEADER == 3012000, "Build the provider against the MuJoCo 3.12.0 baseline");
+static_assert(mjVERSION_HEADER >= 3012000 && mjVERSION_HEADER < 3018000,
+              "Build the provider against reviewed MuJoCo 3.12-3.17 headers");
 
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN

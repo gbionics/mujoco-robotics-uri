@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.26)
-project(mujoco_robotics_uri VERSION 0.1.1 LANGUAGES CXX)
+project(mujoco_robotics_uri VERSION 0.1.2 LANGUAGES CXX)
 include(GNUInstallDirs)
 include(FetchContent)
 
@@ -26,16 +26,10 @@ if(MRU_WHEEL)
     NO_DEFAULT_PATH NO_CACHE REQUIRED)
   set(MRU_PLUGIN_INSTALL_DIR "mujoco/plugin")
 else()
-  set(MRU_MUJOCO_INCLUDE_DIR "" CACHE PATH "MuJoCo 3.12.0 include directory (headers only)")
-  if(NOT MRU_MUJOCO_INCLUDE_DIR)
-    FetchContent_Declare(mujoco_headers
-      URL https://github.com/google-deepmind/mujoco/archive/refs/tags/3.12.0.tar.gz
-      URL_HASH SHA256=9faa979982c3e924e8aaff3b16983bba3a1ab19c81f4f73178ae9c2ea25e467d
-      # Use only the existing include directory, without building another engine.
-      SOURCE_SUBDIR include)
-    FetchContent_MakeAvailable(mujoco_headers)
-    set(MRU_MUJOCO_INCLUDE_DIR "${mujoco_headers_SOURCE_DIR}/include")
-  endif()
+  find_package(mujoco 3.12 CONFIG REQUIRED)
+  # Use the installed headers without linking the provider to the engine.
+  set(MRU_MUJOCO_INCLUDE_DIR
+    "$<TARGET_PROPERTY:mujoco::mujoco,INTERFACE_INCLUDE_DIRECTORIES>")
 endif()
 
 if(MRU_FETCH_RESOLVER)
@@ -74,9 +68,7 @@ install(TARGETS mujoco_robotics_uri
 
 include(CTest)
 if(BUILD_TESTING AND NOT MRU_WHEEL)
-  # The plugin itself needs only baseline headers. These test executables need
-  # a real engine and its headers to exercise MuJoCo's public native API.
-  find_package(mujoco CONFIG REQUIRED)
+  # Unlike the provider, integration tests link to the installed engine.
   add_executable(native_smoke tests/native_smoke.cc)
   target_compile_features(native_smoke PRIVATE cxx_std_17)
   target_link_libraries(native_smoke PRIVATE mujoco::mujoco)
