@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.26)
-project(mujoco_robotics_uri VERSION 0.1.2 LANGUAGES CXX)
+project(mujoco_robotics_uri VERSION 0.1.3 LANGUAGES CXX)
 include(GNUInstallDirs)
 include(FetchContent)
 

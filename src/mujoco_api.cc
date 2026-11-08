@@ -6,8 +6,9 @@
 #include <cstring>
 #include <string_view>
 
-static_assert(mjVERSION_HEADER >= 3012000 && mjVERSION_HEADER < 3018000,
-              "Build the provider against reviewed MuJoCo 3.12-3.17 headers");
+static_assert((mjVERSION_HEADER >= 3012000 && mjVERSION_HEADER < 3018000)
+                  || (mjVERSION_HEADER >= 4000000 && mjVERSION_HEADER < 4001000),
+              "Build the provider against reviewed MuJoCo 3.12-3.17 or 4.0 headers");
 
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
@@ -112,7 +113,7 @@ bool MuJoCoApi::Initialize()
                      version_string());
         return false;
     }
-    // Provider structs and these function signatures match in 3.12-3.17.
+    // Provider structs and these function signatures match in 3.12-3.17 and 4.0.
     // Packaging constraints handle future incompatible ABI changes.
     const bool legacy = runtime_version < 3016000;
     default_provider = Symbol<decltype(default_provider)>(module,
