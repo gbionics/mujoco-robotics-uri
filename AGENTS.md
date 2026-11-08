@@ -35,18 +35,19 @@ Read `agent-docs/abi.md` before changing MuJoCo dependencies, provider callbacks
 loader code, runtime guards, or compatibility claims.
 
 - Build wheels against the MuJoCo **3.12.0** header baseline; native builds use
-  installed reviewed **3.12–3.17** headers via `find_package(mujoco)`. Native and
-  wheel binaries use the same runtime loader and provider implementation, without
+  installed reviewed **3.12–3.17 and 4.0** headers via `find_package(mujoco)`.
+  Native and wheel binaries use the same runtime loader and provider implementation, without
   direct MuJoCo imports or a link to `libmujoco`. Select old provider symbols for
   runtime versions 3.12–3.15 and renamed symbols for 3.16+. Validate structs,
   signatures, imported functions, and platform loader dependencies together.
-- Native builds require a reviewed `libmujoco >=3.12,<3.18` host dependency for
+- Native builds require a reviewed `libmujoco >=3.12,<4.1` host dependency for
   headers, without linking to the engine. No per-MuJoCo ABI migration is needed
   for this provider. The external feedstock declares `libmujoco >=3.12` at run
   time. If a future ABI is incompatible, patch repodata to restrict affected
   builds and update/rebuild the provider as necessary. Repodata changes dependency
   metadata; it cannot repair a binary or an already installed environment.
 - PyPI 0.1.0 builds with MuJoCo 3.12.0 and declares `mujoco>=3.12,<3.18`.
+  PyPI 0.1.3 extends this to `mujoco>=3.12,<4.1` after reviewing 4.0.0.
   Review/test each new MuJoCo version and publish a new plugin release with an
   updated upper bound. The previous split 0.1.0/0.2.0 symbol-family release plan
   is superseded: one binary supports both families.
@@ -54,16 +55,16 @@ loader code, runtime guards, or compatibility claims.
   loaded locally by Python. Never load or bundle a second engine. Reject versions
   below 3.12 and missing required symbols before registering providers.
 - The common runtime loader has no hardcoded upper version bound; distribution
-  metadata controls it. Only 3.12–3.17 are reviewed. Successful symbol lookup does
-  not prove an unknown future struct layout is safe. Do not claim unconditional
+  metadata controls it. Only 3.12–3.17 and 4.0 are reviewed. Successful symbol
+  lookup does not prove an unknown future struct layout is safe. Do not claim unconditional
   ABI compatibility with all future MuJoCo versions.
 - When extending PyPI compatibility, update `project.dependencies`, the matrix
   and upper-bound assertion in `scripts/test_wheel.py`, and the ABI record
   together. Keep the pinned wheel 3.12.0 headers unless an ABI change requires
   otherwise.
 - Build one wheel and test that exact artifact with every supported runtime
-  release (currently 3.12.0 through 3.17.0) and the rejected 3.11.0 runtime.
-  Also check the PyPI upper bound in metadata. Do not broaden a range merely
+  release (currently 3.12.0 through 3.17.0, plus 4.0.0) and the rejected 3.11.0
+  runtime. Also check the PyPI upper bound in metadata. Do not broaden a range merely
   because compilation succeeds.
 
 ## On a new MuJoCo release
@@ -140,7 +141,7 @@ Standalone native CMake builds require C++17, the `ResolveRoboticsURICpp`
 CMake package, and an installed MuJoCo development package discoverable by
 `find_package(mujoco 3.12 CONFIG REQUIRED)`. Only the MuJoCo target's include
 paths are used by the provider; it does not link to the engine. Headers must
-belong to the reviewed 3.12–3.17 interval. Wheels retain their pinned 3.12.0
+belong to the reviewed 3.12–3.17 or 4.0 intervals. Wheels retain their pinned 3.12.0
 build dependency. Native builds do not fetch MuJoCo headers.
 Native integration tests additionally need installed shared MuJoCo and Python;
 packaging builds can omit those tests:
@@ -190,7 +191,7 @@ Keep the version aligned with CMake and PyPI.
 The recipe configures, builds, and installs using the existing CMake rules.
 `BUILD_TESTING=OFF` omits Python and integration-test dependencies. Build tools
 and compilers are declared in the recipe, including CMake >=3.26. The packaged
-resolver and `libmujoco >=3.12,<3.18` are host dependencies; MuJoCo supplies
+resolver and `libmujoco >=3.12,<4.1` are host dependencies; MuJoCo supplies
 headers only to the provider. `requirements.ignore_run_exports.from_package`
 ignores only `libmujoco`, preserving the explicit `libmujoco >=3.12` runtime
 requirement while retaining compiler runtime exports. Windows installs into

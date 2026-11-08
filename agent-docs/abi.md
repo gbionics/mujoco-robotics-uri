@@ -20,6 +20,7 @@ other MuJoCo APIs and structs can change independently.
 | 3.15.0 | No resource-provider ABI change. |
 | 3.16.0 | Renamed exported provider functions and removed the old names. This breaks plugins that import the old symbols, despite unchanged provider structs. |
 | 3.17.0 | No further resource-provider ABI change relative to 3.16. |
+| 4.0.0 | Same resource-provider ABI and renamed symbols as 3.17; Python distribution split retains directory autoload. |
 
 The functions used by this plugin are:
 
@@ -32,7 +33,7 @@ The functions used by this plugin are:
 The plugin also uses the unchanged `mj_version` and `mj_versionString` functions.
 The runtime loader selects the provider names using `mj_version()`. It always
 uses headers whose resource layouts and relevant function signatures match all
-six reviewed releases: pinned 3.12.0 for wheels, installed 3.12–3.17 for native builds. Compile-time API aliases remain for
+seven reviewed releases: pinned 3.12.0 for wheels, installed 3.12–3.17 or 4.0 for native builds. Compile-time API aliases remain for
 function-pointer declarations and native tests using their installed headers;
 they do not select the symbols used by the provider at runtime.
 
@@ -47,7 +48,7 @@ Sources:
 ## Common native and wheel binary
 
 Wheels compile against **3.12.0 headers**; native builds use installed, reviewed
-**3.12–3.17 headers**. Both dynamically resolve the same five functions. There is no direct link, SONAME dependency, Windows
+**3.12–3.17 or 4.0 headers**. Both dynamically resolve the same five functions. There is no direct link, SONAME dependency, Windows
 import-library dependency, or unresolved import for MuJoCo. This avoids the
 versioned SONAME/install-name constraint and permits the same binary to register
 against either provider-symbol family.
@@ -64,7 +65,7 @@ lifetime; using multiple different MuJoCo runtimes in one process is unsupported
 Before registration, reject runtimes older than 3.12 and missing required symbols.
 Choose the legacy names below 3.16 and the renamed names from 3.16 onward.
 There is no runtime upper bound: **metadata controls the supported interval**.
-The reviewed provider layouts cover 3.12–3.17 only. Dynamic function lookup does
+The reviewed provider layouts cover 3.12–3.17 and 4.0 only. Dynamic function lookup does
 not make an unknown future layout compatible; future ABI changes still need
 review, dependency restrictions, and potentially code changes.
 
@@ -75,7 +76,7 @@ policy and the separate 0.1.0 / 0.2.0 PyPI releases for old/new symbol families.
 
 Native builds use `find_package(mujoco 3.12 CONFIG REQUIRED)` and take include
 paths from `mujoco::mujoco` without linking the provider to that target. A
-compile-time check rejects headers outside the reviewed 3.12–3.17 interval.
+compile-time check rejects headers outside the reviewed 3.12–3.17 and 4.0 intervals.
 There is no MuJoCo header download or source-directory override. An installed
 MuJoCo development package is required even with `BUILD_TESTING=OFF`; Python
 and integration-test linkage are required only when tests are enabled.
@@ -86,7 +87,7 @@ headers are installed by this project.
 
 ## Conda-forge: headers at build time, dynamic runtime dependency
 
-The external feedstock now needs a reviewed `libmujoco >=3.12,<3.18` host
+The external feedstock now needs a reviewed `libmujoco >=3.12,<4.1` host
 dependency for headers and should retain **`libmujoco >=3.12`** at runtime.
 The recipe remains external and has not been updated here. Host-package run
 exports must not inadvertently replace the intended dynamic runtime policy. No MuJoCo ABI migration or rebuild for
@@ -98,7 +99,7 @@ No conda recipe belongs in this repository.
 The root Pixi source package uses `pixi-build-rattler-build` with the same CMake
 install and runtime policy. `pixi-recipe.yaml` loads package metadata from
 `pixi.toml` and declares the build, host, and run dependencies. Its host
-dependencies include the packaged resolver and `libmujoco >=3.12,<3.18` for
+dependencies include the packaged resolver and `libmujoco >=3.12,<4.1` for
 installed headers. `requirements.ignore_run_exports.from_package: [libmujoco]`
 keeps MuJoCo's narrow host run export out of the package, preserving the explicit
 `libmujoco >=3.12` runtime requirement. Compiler runtime exports remain enabled.
@@ -131,7 +132,8 @@ success. Different layouts require an explicitly supplied directory.
 | Plugin release | Header build baseline | Wheel `Requires-Dist` |
 | --- | --- | --- |
 | 0.1.0 | 3.12.0 | `mujoco>=3.12,<3.18` |
-| 0.1.2 (prepared) | 3.12.0 | `mujoco>=3.12,<3.18` |
+| 0.1.2 | 3.12.0 | `mujoco>=3.12,<3.18` |
+| 0.1.3 (prepared) | 3.12.0 | `mujoco>=3.12,<4.1` |
 
 One artifact covers both symbol families. This source tree implements the policy;
 publication is separate. PyPI has no conda-style repodata patch mechanism, so
@@ -152,10 +154,10 @@ package; pip wheels need not autoload in that layout.
 ## Validation requirements
 
 Build one wheel and test that exact artifact with MuJoCo **3.12.0, 3.13.0, 3.14.0,
-3.15.0, 3.16.0, and 3.17.0** in fresh environments. Test automatic registration
+3.15.0, 3.16.0, 3.17.0, and 4.0.0** in fresh environments. Test automatic registration
 using only `import mujoco`, resource semantics, file ownership, and uninstall.
 Install with dependency checks bypassed on 3.11.0 to verify rejection before
-registration. Check the `<3.18` wheel metadata rather than inventing an unreleased
+registration. Check the `<4.1` wheel metadata rather than inventing an unreleased
 runtime for an upper-bound rejection test.
 
 Inspect native and wheel library dependencies for accidental MuJoCo imports.
@@ -168,7 +170,7 @@ Retain native callback/conflict and relocated-directory discovery tests.
 CI uses ordinary isolated Python build jobs on Linux x86-64/AArch64, macOS
 ARM64, and Windows x86-64. Linux AArch64 uses a native `ubuntu-24.04-arm`
 runner and the architecture-matched manylinux_2_28 container, including the same
-six-version runtime matrix and source/native tests as x86-64. The `wheel-build` Pixi environment locks Python, the build/test
+seven-version runtime matrix and source/native tests as x86-64. The `wheel-build` Pixi environment locks Python, the build/test
 frontends, CMake, and Ninja on all platforms, plus Linux auditwheel/patchelf.
 For consistency Windows also uses this compiler-free environment and initializes
 MSVC with msvc-dev-cmd. CI does not bootstrap Python or frontends with pip. Linux retains the manylinux
@@ -324,3 +326,74 @@ The rebuilt 0.1.2 Linux source package passed all 12 consumer tests and its
 installed metadata retains only `libmujoco >=3.12` for MuJoCo. The native 0.1.2
 build passed 12 Python tests and all five CTest checks. A fresh wheel matrix
 and other-platform builds remain CI checks. No release publication is implied.
+
+
+## MuJoCo 4.0.0 and plugin 0.1.3 review on 2026-11-08
+
+The [4.0.0 release notes](https://github.com/google-deepmind/mujoco/releases/tag/4.0.0)
+and tagged sources were reviewed against 3.12.0 and 3.17.0:
+
+- The resource-provider section of
+  [`mjplugin.h`](https://github.com/google-deepmind/mujoco/blob/4.0.0/include/mujoco/mjplugin.h),
+  including `mjResource`, `mjpResourceProvider`, and every resource callback, is
+  byte-identical to 3.12.0. The complete header is byte-identical to 3.17.0.
+  The changed decoder callback since 3.12 is outside this plugin's interface.
+- All five declarations in
+  [`mujoco.h`](https://github.com/google-deepmind/mujoco/blob/4.0.0/include/mujoco/mujoco.h)
+  match 3.17.0: `mj_version`, `mj_versionString`, `mjp_defaultProvider`,
+  `mjp_registerProvider`, and `mjp_findProvider`. The version encoding is
+  4000000, so existing runtime dispatch selects the renamed symbols.
+- [`user_resource.cc`](https://github.com/google-deepmind/mujoco/blob/4.0.0/src/user/user_resource.cc)
+  still returns 1 (modified) when no modification callback is provided.
+- [`CMakeLists.txt`](https://github.com/google-deepmind/mujoco/blob/4.0.0/CMakeLists.txt)
+  retains the `mujoco` shared-library target and versioned library naming,
+  including `mujoco.dll` on Windows. Its `AnyNewerVersion` package-version
+  policy accepts the existing native `find_package(mujoco 3.12)` request.
+- The Python distribution now consists of `mujoco`, `mujoco-core`, and
+  `mujoco-studio`. The tagged
+  [`__init__.py`](https://github.com/google-deepmind/mujoco/blob/4.0.0/python/mujoco/__init__.py)
+  still loads shared libraries in `mujoco/plugin` through `ctypes.CDLL` after
+  importing core bindings. New entry-point discovery is additive; this plugin
+  keeps its existing directory layout. Normal installation of `mujoco==4.0.0`
+  supplies the split dependencies.
+
+Decision: retain the 3.12.0 wheel header baseline, runtime loader, provider
+implementation, and minimum runtime. Extend PyPI metadata and native host
+dependencies to `<4.1`; native header checks accept 3.12–3.17 and 4.0.
+The runtime matrix adds 4.0.0 and retains every previous runtime plus 3.11.0
+rejection. Future releases still require review; no compatibility claim is
+made for hypothetical intervening 3.x releases. The external conda-forge
+feedstock is not changed here, and its dynamic `libmujoco >=3.12` runtime
+policy remains applicable. CMake, PyPI, and Pixi declare plugin 0.1.3.
+
+Local validation on Linux x86-64 (Python 3.12.16):
+
+- One isolated PEP 517 build produced the 0.1.3 wheel using 3.12.0 headers.
+  The GitHub release-archive download failed locally; the documented FetchContent
+  overrides supplied a local resolver archive verified against the pinned
+  SHA-256 and cached YCM sources. Backend/header isolation remained enabled.
+- The exact wheel passed all 12 resource/autoload tests on each of 3.12.0,
+  3.13.0, 3.14.0, 3.15.0, 3.16.0, 3.17.0, and 4.0.0: 84 tests. The 4.0.0
+  environment installed the split core/studio dependencies through ordinary pip
+  resolution and required only `import mujoco` for provider autoload. The same
+  artifact rejected 3.11.0 before registering providers. Wheel checks verified
+  `<4.1` metadata, licenses, absence of a direct MuJoCo library dependency,
+  unchanged MuJoCo-owned files, and clean uninstall ownership in all eight
+  environments.
+- `pixi run test` passed 12 Python tests and all five CTest checks with the
+  locked conda-forge 3.16.0 runtime/headers. `pixi run -e source test-source`
+  rebuilt plugin 0.1.3 and passed all 12 independent consumer tests. Inspection
+  confirmed only the provider library as payload, `libmujoco >=3.12` at runtime,
+  and no direct MuJoCo dependency or undefined MuJoCo function imports in either
+  native binary.
+- A separate syntax-only C++17 compilation of the provider and native smoke
+  test against all 15 transitively included tagged 4.0.0 headers passed.
+- Pixi lock refresh/check retained all four platforms and refreshed source
+  package metadata. A targeted MuJoCo update retained conda-forge 3.16.0, so
+  native/source execution against a conda 4.0.0 engine remains unexecuted.
+- Version/tag consistency, `git diff --check`, and clang-format 18 validation
+  using the temporary upstream configuration passed.
+
+macOS, Windows, Linux AArch64, and manylinux container execution remain CI
+checks for this change. No publication or broader platform validation is
+implied by the local Linux wheel results.

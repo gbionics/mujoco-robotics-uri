@@ -27,7 +27,7 @@ requirements:
     - cmake >=3.26
     - ninja
   host:
-    - libmujoco >=3.12,<3.18
+    - libmujoco >=3.12,<4.1
     - libresolve-robotics-uri-cpp >=0.6.2
   run:
     - libmujoco >=3.12

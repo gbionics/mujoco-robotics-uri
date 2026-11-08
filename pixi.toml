@@ -56,7 +56,7 @@ source = { features = ["source"], no-default-feature = true }
 
 [package]
 name = "mujoco-robotics-uri"
-version = "0.1.2"
+version = "0.1.3"
 description = "MuJoCo resource provider for package://, model://, and robot:// URIs"
 license = "BSD-3-Clause"
 license-file = "LICENSES.txt"

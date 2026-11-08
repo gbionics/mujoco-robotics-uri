@@ -23,10 +23,10 @@ args = parser.parse_args()
 project = tomllib.loads((repo / "pyproject.toml").read_text())["project"]
 requirement = next(dep for dep in project["dependencies"] if dep.startswith("mujoco"))
 # Test one artifact across both provider-symbol families.
-versions = args.mujoco_version or ["3.12.0", "3.13.0", "3.14.0", "3.15.0", "3.16.0", "3.17.0"]
+versions = args.mujoco_version or ["3.12.0", "3.13.0", "3.14.0", "3.15.0", "3.16.0", "3.17.0", "4.0.0"]
 incompatible = ["3.11.0"]
 # Future upper bounds are packaging policy, not a second native loading path.
-assert not Requirement(requirement).specifier.contains("3.18.0")
+assert not Requirement(requirement).specifier.contains("4.1.0")
 
 if not all(Requirement(requirement).specifier.contains(version) for version in versions):
     parser.error("--mujoco-version must satisfy the release's declared dependency range")
